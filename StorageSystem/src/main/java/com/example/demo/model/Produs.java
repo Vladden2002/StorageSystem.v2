@@ -19,8 +19,9 @@ public class Produs {
     @ManyToOne
     @JoinColumn(name = "storage_id")
     private Storage storage;
-    private int weight;
+    private double weight;
     private double price;
+    private int amount;
 
     // Constructor
     public Produs(String name, String category, Storage storage, int weight, double price) {
@@ -29,6 +30,7 @@ public class Produs {
         this.storage = storage;
         this.weight = weight;
         this.price = price;
+        amount = 1;
     }
 
     // Default constructor
@@ -37,6 +39,14 @@ public class Produs {
     // Getters and Setters
     public long getId() {
         return id;
+    }
+    
+    public int getAmount() {
+    	return amount;
+    }
+    
+    public void setAmount(int amount) {
+    	this.amount = amount;
     }
 
     public void setId(long id) {
@@ -67,12 +77,12 @@ public class Produs {
         this.storage = storage;
     }
 
-    public int getWeight() {
+    public double getWeight() {
         return weight;
     }
 
-    public void setWeight(int weight) {
-        this.weight = weight;
+    public void setWeight(double d) {
+        this.weight = d;
     }
 
     public double getPrice() {
@@ -82,5 +92,6 @@ public class Produs {
     public void setPrice(double price) {
         this.price = price;
     }
+
 }
 

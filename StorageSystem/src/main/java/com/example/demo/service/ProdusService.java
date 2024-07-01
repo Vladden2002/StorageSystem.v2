@@ -8,8 +8,8 @@ import com.example.demo.repository.ProdusRepo;
 
 @Service
 public class ProdusService {
-	 @Autowired
-	  private ProdusRepo produsRepository;
+
+    private final ProdusRepo produsRepository;
 
     @Autowired
     public ProdusService(ProdusRepo produsRepository) {
@@ -19,8 +19,18 @@ public class ProdusService {
     public void addProdus(Produs produs) {
         produsRepository.save(produs);
     }
-
-    public List<Produs> getAllProdus() {
-        return (List<Produs>) produsRepository.findAll();
+    
+    public List<Produs> getAllProdusByStorageId(Long storageId) {
+        return (List<Produs>) produsRepository.findByStorageId(storageId);
     }
+
+    public void deleteProdusById(Long id) {
+        produsRepository.deleteById(id);
+    }
+    
+    public Produs findById(Long id) {
+        return produsRepository.findById(id).orElse(null);
+    }
+    
+    
 }

@@ -172,148 +172,308 @@
         <button onclick="location.href='#'">Inapoi</button>
     </div>
 
-    <!-- Info box -->
     <div class="info-box">
         <h1>Storage Details</h1>
-        <div class="info-item">
-            <strong>Name:</strong> ${storage.name}
-        </div>
-        <div class="info-item">
-            <strong>Max Capacity:</strong> ${storage.maxCapacity}
-        </div>
-        <div class="info-item">
-            <strong>Current Capacity:</strong> ${storage.currentCapacity}
-        </div>
-        <div class="info-item">
-            <strong>Location:</strong> ${storage.location}
-        </div>
-        <div class="info-item">
-            <strong>Availability:</strong> ${storage.availability}
-        </div>
+        <div class="info-item"><strong>Name:</strong> ${storage.name}</div>
+        <div class="info-item"><strong>Max Capacity:</strong> ${storage.maxCapacity}</div>
+        <div class="info-item"><strong>Current Capacity:</strong> ${storage.currentCapacity}</div>
+        <div class="info-item"><strong>Location:</strong> ${storage.location}</div>
+        <div class="info-item"><strong>Availability:</strong> ${storage.availability}</div>
     </div>
 
-    <div id="productsContainer" class="products-container">
+     <div id="productsContainer" class="products-container">
         <!-- Products will be dynamically added here -->
     </div>
 
-    <!-- Modal -->
     <div id="myModal" class="modal">
-        <!-- Modal content -->
         <div class="modal-content">
             <span class="close">&times;</span>
-            <!-- Add your form for adding a product here -->
             <h2>Add Product</h2>
             <form id="addProductForm" action="/addProduct" method="post">
                 <label for="productName">Name:</label>
                 <input type="text" id="productName" name="productName" required><br><br>
-
                 <label for="productPrice">Price:</label>
                 <input type="number" id="productPrice" name="productPrice" min="0" required><br><br>
-
                 <label for="productWeight">Weight:</label>
                 <input type="number" id="productWeight" name="productWeight" min="0" required><br><br>
-
                 <label for="productCategory">Category:</label>
                 <select id="productCategory" name="productCategory" required>
                     <option value="">Select a category</option>
-                    <!-- Categories will be populated dynamically using JavaScript -->
                 </select><br><br>
                 <input type="hidden" name="storageId" value="${storage.id}">
                 <input type="submit" value="Add Product">
             </form>
         </div>
     </div>
+    
+    <div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditModal()">&times;</span>
+        <h2>Edit Product</h2>
+        <form id="editProductForm" onsubmit="saveEditedProduct(); return false;">
+            <input type="hidden" id="productId" name="productId">
+            <label for="editProductName">Name:</label>
+            <input type="text" id="editProductName" name="editProductName" required><br><br>
+            <label for="editProductPrice">Price:</label>
+            <input type="number" id="editProductPrice" name="editProductPrice" min="0" required><br><br>
+            <label for="editProductWeight">Weight:</label>
+            <input type="number" id="editProductWeight" name="editProductWeight" min="0" required><br><br>
+            <label for="editProductCategory">Category:</label>
+            <select id="editProductCategory" name="editProductCategory" required>
+                <option value="">Select a category</option>
+                <!-- Populate categories dynamically if needed -->
+            </select><br><br>
+            <input type="submit" value="Save">
+        </form>
+   	 </div>
+	</div>
+
+	<div class="message">
+        <c:if test="${not empty message}">
+            <p>${message}</p>
+        </c:if>
+    </div>
+
 
     <script>
-        document.getElementById("openModalBtn").onclick = function() {
-            var modal = document.getElementById("myModal");
-            modal.style.display = "block";
-            populateProductCategoryDropdown(); // Populate productCategory dropdown when modal is opened
-        };
-
-        // JavaScript to close the modal when the close button or outside the modal is clicked
+    document.getElementById("openModalBtn").onclick = function() {
         var modal = document.getElementById("myModal");
-        var span = document.getElementsByClassName("close")[0];
+        modal.style.display = "block";
+        populateProductCategoryDropdown();
+    };
 
-        span.onclick = function() {
+    var modal = document.getElementById("myModal");
+    var span = document.getElementsByClassName("close")[0];
+
+    span.onclick = function() {
+        modal.style.display = "none";
+    };
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
             modal.style.display = "none";
-        };
+        }
+    };
 
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        };
+    function populateProductCategoryDropdown() {
+        fetch('/categories')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(categories => {
+                var productCategoryDropdown = document.getElementById("productCategory");
+                productCategoryDropdown.innerHTML = '<option value="">Select a category</option>';
 
-        function populateProductCategoryDropdown() {
-            fetch('/categories')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(categories => {
-                    var productCategoryDropdown = document.getElementById("productCategory");
-                    productCategoryDropdown.innerHTML = '<option value="">Select a category</option>';
+                categories.forEach(category => {
+                    var option = document.createElement("option");
+                    option.value = category.name;
+                    option.textContent = category.name;
+                    productCategoryDropdown.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching categories:', error);
+            });
+    }
+    
+    function fetchAndDisplayProducts() {
+        var storageId = ${storage.id}; // Retrieve storage ID from JSP variable
+        fetch('/getAllProdusByStorageId?storageId=' + storageId)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(products => {
+                var productsContainer = document.getElementById("productsContainer");
+                productsContainer.innerHTML = ''; // Clear previous content
 
-                    categories.forEach(category => {
-                        var option = document.createElement("option");
-                        option.value = category.name;
-                        option.textContent = category.name;
-                        productCategoryDropdown.appendChild(option);
+                products.forEach(product => {
+                    var productItem = document.createElement("div");
+                    productItem.classList.add("product-item");
+
+                    var productName = document.createElement("h3");
+                    productName.textContent = product.name;
+                    productItem.appendChild(productName);
+
+                    var productCategory = document.createElement("p");
+                    productCategory.textContent = "Category: " + product.category;
+                    productItem.appendChild(productCategory);
+
+                    var productWeight = document.createElement("p");
+                    productWeight.textContent = "Weight: " + product.weight;
+                    productItem.appendChild(productWeight);
+
+                    var productPrice = document.createElement("p");
+                    productPrice.textContent = "Price: " + product.price;
+                    productItem.appendChild(productPrice);
+
+                    // Amount controls (increment and decrement buttons + input field)
+                    var amountControls = document.createElement("div");
+                    amountControls.classList.add("amount-controls");
+
+                    var decreaseButton = document.createElement("button");
+                    decreaseButton.textContent = "-";
+                    decreaseButton.addEventListener('click', function() {
+                        updateProductAmount(product.id, product.amount - 1);
                     });
-                })
-                .catch(error => {
-                    console.error('Error fetching categories:', error);
+                    amountControls.appendChild(decreaseButton);
+
+                    var amountInput = document.createElement("input");
+                    amountInput.type = "number";
+                    amountInput.value = product.amount;
+                    amountInput.addEventListener('change', function() {
+                        updateProductAmount(product.id, parseInt(amountInput.value));
+                    });
+                    amountControls.appendChild(amountInput);
+
+                    var increaseButton = document.createElement("button");
+                    increaseButton.textContent = "+";
+                    increaseButton.addEventListener('click', function() {
+                        updateProductAmount(product.id, product.amount + 1);
+                    });
+                    amountControls.appendChild(increaseButton);
+
+                    productItem.appendChild(amountControls);
+
+                    // Edit button
+                    var editButton = document.createElement("button");
+                    editButton.textContent = "Edit";
+                    editButton.onclick = function() {
+                        openEditModal(product.id, product.name, product.price, product.weight, product.category);
+                    };
+                    productItem.appendChild(editButton);
+
+                    // Delete button
+                    var deleteButton = document.createElement("button");
+                    deleteButton.textContent = "Delete";
+                    deleteButton.onclick = function() {
+                        deleteProduct(product.id);
+                    };
+                    productItem.appendChild(deleteButton);
+
+                    productsContainer.appendChild(productItem);
                 });
-        }
+            })
+            .catch(error => {
+                console.error('Error fetching products:', error);
+            });
+    }
 
-        function fetchProducts() {
-            fetch('/getAllProdus')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(products => {
-                    console.log(products); // Check what data is received
-
-                    var productsContainer = document.getElementById("productsContainer");
-                    productsContainer.innerHTML = ''; // Clear existing content
-
-                    if (products.length === 0) {
-                        // Handle case when there are no products
-                        productsContainer.innerHTML = '<p>No products found</p>';
-                    } else {
-                        // Populate container with products
-                        products.forEach(product => {
-                            var productDiv = document.createElement("div");
-                            productDiv.classList.add("product-item");
-
-                            productDiv.innerHTML = `
-                                <h3>${product.name}</h3>
-                                <p><strong>Category:</strong> ${product.category}</p>
-                                <p><strong>Weight:</strong> ${product.weight}</p>
-                                <p><strong>Price:</strong> ${product.price}</p>
-                                <p><strong>Amount:</strong> ${product.amount}</p>
-                                <hr>
-                            `;
-                            productsContainer.appendChild(productDiv);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching products:', error);
-                    var productsContainer = document.getElementById("productsContainer");
-                    productsContainer.innerHTML = '<p>Error fetching products</p>';
-                });
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            fetchProducts();
+    function updateProductAmount(productId, newAmount) {
+        fetch('/updateProductAmount/' + productId + '?amount=' + newAmount, {
+            method: 'PUT'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to update product amount');
+            }
+            // Refresh products after update
+            fetchAndDisplayProducts();
+        })
+        .catch(error => {
+            console.error('Error updating product amount:', error);
         });
+    }
+
+
+
+    function deleteProduct(productId) {
+        fetch('/deleteProduct/' + productId, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to delete product');
+            }
+            // Refresh products after deletion
+            fetchAndDisplayProducts();
+        })
+        .catch(error => {
+            console.error('Error deleting product:', error);
+        });
+    }
+
+    function openEditModal(productId, currentName, currentPrice, currentWeight, currentCategory) {
+        // Populate modal fields with current product details
+        document.getElementById("productId").value = productId;
+        document.getElementById("editProductName").value = currentName;
+        document.getElementById("editProductPrice").value = currentPrice;
+        document.getElementById("editProductWeight").value = currentWeight;
+
+        // Populate select element (editProductCategory) with categories
+        fetch('/categories')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(categories => {
+                var productCategoryDropdown = document.getElementById("editProductCategory");
+                productCategoryDropdown.innerHTML = ''; // Clear previous options
+
+                categories.forEach(category => {
+                    var option = document.createElement("option");
+                    option.value = category.name;
+                    option.textContent = category.name;
+                    
+                    if (category.name === currentCategory) {
+                        option.selected = true; // Select the current category
+                    }
+                    
+                    productCategoryDropdown.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching categories:', error);
+            });
+
+        // Show the edit modal
+        var modal = document.getElementById("editModal");
+        modal.style.display = "block";
+    }
+
+    function closeEditModal() {
+        // Close the edit modal
+        var modal = document.getElementById("editModal");
+        modal.style.display = "none";
+    }
+
+    function saveEditedProduct() {
+        var productId = document.getElementById("productId").value;
+        var newName = document.getElementById("editProductName").value;
+        var newPrice = parseFloat(document.getElementById("editProductPrice").value);
+        var newWeight = parseInt(document.getElementById("editProductWeight").value);
+        var newCategory = document.getElementById("editProductCategory").value;
+
+        if (newName && !isNaN(newPrice) && !isNaN(newWeight) && newCategory) {
+            fetch('/editProduct/' + productId + '?productName=' + encodeURIComponent(newName) + '&productPrice=' + newPrice + '&productWeight=' + newWeight + '&productCategory=' + encodeURIComponent(newCategory), {
+                method: 'PUT'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to edit product');
+                }
+                // Close the edit modal and refresh products
+                closeEditModal();
+                fetchAndDisplayProducts();
+            })
+            .catch(error => {
+                console.error('Error editing product:', error);
+            });
+        }
+    }
+
+    // Call the function when the page loads
+    window.onload = function() {
+        fetchAndDisplayProducts();
+    };
+
     </script>
 </body>
 </html>

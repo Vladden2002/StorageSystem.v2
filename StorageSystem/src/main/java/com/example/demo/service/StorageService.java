@@ -24,4 +24,6 @@ public class StorageService {
         Optional<Storage> storageOptional = storageRepository.findById(id);
         return storageOptional.orElse(null);
     }
+	
+	
 }
